@@ -62,8 +62,8 @@ class UserProfile:
         # Validate semester
         try:
             semester = int(data['semester'])
-            if semester < 1 or semester > 12:
-                return False, "Semester must be between 1 and 12"
+            if semester < 1 or semester > 10:
+                return False, "Semester must be between 1 and 10"
         except (ValueError, TypeError):
             return False, "Semester must be a valid number"
         
@@ -196,8 +196,8 @@ class Resource:
         # Validate semester
         try:
             semester = int(data['semester'])
-            if semester < 1 or semester > 12:
-                return False, "Semester must be between 1 and 12"
+            if semester < 1 or semester > 10:
+                return False, "Semester must be between 1 and 10"
         except (ValueError, TypeError):
             return False, "Semester must be a valid number"
         

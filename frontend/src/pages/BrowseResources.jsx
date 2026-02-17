@@ -33,7 +33,16 @@ const BrowseResources = () => {
         'Study Material'
     ];
 
-    const branches = ['CSE', 'ECE', 'ME', 'CE', 'EE', 'IT', 'Other'];
+    const branches = [
+        { value: 'CSE', label: 'Computer Science & Engineering (CSE)' },
+        { value: 'ECE', label: 'Electronics & Communication (ECE)' },
+        { value: 'ME', label: 'Mechanical Engineering (ME)' },
+        { value: 'CE', label: 'Civil Engineering (CE)' },
+        { value: 'EE', label: 'Electrical Engineering (EE)' },
+        { value: 'IT', label: 'Information Technology (IT)' },
+        { value: 'AIDS', label: 'AI & Data Science' },
+        { value: 'General', label: 'Other / General' }
+    ];
     const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i + 1); // Current year + 1 down to past 5 years
 
     useEffect(() => {
@@ -214,7 +223,7 @@ const BrowseResources = () => {
                             >
                                 <option value="">All Branches</option>
                                 {branches.map(branch => (
-                                    <option key={branch} value={branch}>{branch}</option>
+                                    <option key={branch.value} value={branch.value}>{branch.label}</option>
                                 ))}
                             </select>
                         </div>
@@ -226,7 +235,7 @@ const BrowseResources = () => {
                                 onChange={(e) => setFilterSemester(e.target.value)}
                             >
                                 <option value="">All Semesters</option>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(sem => (
                                     <option key={sem} value={sem}>Semester {sem}</option>
                                 ))}
                             </select>

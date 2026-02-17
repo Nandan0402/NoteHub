@@ -7,11 +7,13 @@ const Navbar = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
     const handleLogout = async () => {
         try {
             await logout();
             navigate('/login');
+            setIsMobileMenuOpen(false);
         } catch (error) {
             console.error('Failed to logout', error);
         }
@@ -21,6 +23,14 @@ const Navbar = () => {
         return location.pathname === path;
     };
 
+    const toggleMobileMenu = () => {
+        setIsMobileMenuOpen(!isMobileMenuOpen);
+    };
+
+    const closeMobileMenu = () => {
+        setIsMobileMenuOpen(false);
+    };
+
     if (!user) {
         return null;
     }
@@ -28,7 +38,7 @@ const Navbar = () => {
     return (
         <nav className="navbar glass neon-glow">
             <div className="navbar-container">
-                <Link to="/upload" className="navbar-brand">
+                <Link to="/upload" className="navbar-brand" onClick={closeMobileMenu}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="brand-logo">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                         <polyline points="14 2 14 8 20 8" />
@@ -39,10 +49,21 @@ const Navbar = () => {
                     <span className="neon-text">NoteHub</span>
                 </Link>
 
-                <div className="navbar-links">
+                <div className="mobile-menu-toggle" onClick={toggleMobileMenu}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {isMobileMenuOpen ? (
+                            <path d="M18 6L6 18M6 6l12 12" />
+                        ) : (
+                            <path d="M3 12h18M3 6h18M3 18h18" />
+                        )}
+                    </svg>
+                </div>
+
+                <div className={`navbar-links ${isMobileMenuOpen ? 'active' : ''}`}>
                     <Link
                         to="/dashboard"
                         className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
+                        onClick={closeMobileMenu}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <rect x="3" y="3" width="7" height="7" />
@@ -55,6 +76,7 @@ const Navbar = () => {
                     <Link
                         to="/profile"
                         className={`nav-link ${isActive('/profile') ? 'active' : ''}`}
+                        onClick={closeMobileMenu}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -66,6 +88,7 @@ const Navbar = () => {
                     <Link
                         to="/upload"
                         className={`nav-link ${isActive('/upload') ? 'active' : ''}`}
+                        onClick={closeMobileMenu}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -78,6 +101,7 @@ const Navbar = () => {
                     <Link
                         to="/browse"
                         className={`nav-link ${isActive('/browse') ? 'active' : ''}`}
+                        onClick={closeMobileMenu}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 3h7v7H3z" />
@@ -91,6 +115,7 @@ const Navbar = () => {
                     <Link
                         to="/my-resources"
                         className={`nav-link ${isActive('/my-resources') ? 'active' : ''}`}
+                        onClick={closeMobileMenu}
                     >
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />

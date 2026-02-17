@@ -419,7 +419,13 @@ def browse_resources():
         if subject:
             filters['subject'] = {'$regex': subject, '$options': 'i'}
         if branch:
-            filters['branch'] = branch
+            if branch == 'General':
+                # Filter for General OR any non-standard branch (e.g., 'business', 'commerce')
+                # Standard branches list - keep in sync with frontend
+                standard_branches = ['CSE', 'ECE', 'ME', 'CE', 'EE', 'IT', 'AIDS']
+                filters['branch'] = {'$nin': standard_branches}
+            else:
+                filters['branch'] = branch
         if year:
             filters['year'] = int(year)
             

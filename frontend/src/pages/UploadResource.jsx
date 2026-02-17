@@ -16,6 +16,7 @@ const UploadResource = () => {
         subject: '',
         semester: '',
         resourceType: 'Notes',
+        branch: '',
         year: new Date().getFullYear(),
         description: '',
         tags: [],
@@ -30,6 +31,17 @@ const UploadResource = () => {
         'Solutions',
         'Project Reports',
         'Study Material'
+    ];
+
+    const branches = [
+        { value: 'CSE', label: 'Computer Science & Engineering (CSE)' },
+        { value: 'ECE', label: 'Electronics & Communication (ECE)' },
+        { value: 'ME', label: 'Mechanical Engineering (ME)' },
+        { value: 'CE', label: 'Civil Engineering (CE)' },
+        { value: 'EE', label: 'Electrical Engineering (EE)' },
+        { value: 'IT', label: 'Information Technology (IT)' },
+        { value: 'AIDS', label: 'AI & Data Science' },
+        { value: 'General', label: 'Other / General' }
     ];
 
     const handleDrag = (e) => {
@@ -119,6 +131,7 @@ const UploadResource = () => {
                 title: '',
                 subject: '',
                 semester: '',
+                branch: '',
                 resourceType: 'Notes',
                 year: new Date().getFullYear(),
                 description: '',
@@ -254,8 +267,25 @@ const UploadResource = () => {
                                 required
                             >
                                 <option value="">Select Semester</option>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(sem => (
                                     <option key={sem} value={sem}>Semester {sem}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="input-group">
+                            <label htmlFor="branch" className="input-label">Branch/Department *</label>
+                            <select
+                                id="branch"
+                                name="branch"
+                                className="input-field"
+                                value={formData.branch}
+                                onChange={handleChange}
+                                required
+                            >
+                                <option value="">Select Branch</option>
+                                {branches.map(branch => (
+                                    <option key={branch.value} value={branch.value}>{branch.label}</option>
                                 ))}
                             </select>
                         </div>
