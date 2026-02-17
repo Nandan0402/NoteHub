@@ -7,11 +7,11 @@
     right: 0;
     z-index: 100;
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--bg-nav-blur);
-    /* Keep navbar dark */
+    background: rgba(255, 255, 255, 0.85);
+    /* Light glass background */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     box-shadow: var(--nav-shadow);
 }
 
@@ -27,9 +27,18 @@
     font-size: 1.5rem;
     font-weight: 700;
     text-decoration: none;
+    text-decoration: none;
     transition: transform var(--transition-fast);
-    color: #ffffff;
-    /* Explicitly White */
+    color: var(--text-primary);
+    /* Dark Text */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.brand-logo {
+    color: var(--primary-purple);
+    filter: drop-shadow(0 0 5px var(--primary-purple));
 }
 
 .navbar-brand:hover {
@@ -47,9 +56,10 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.6rem 1rem;
+    padding: 0.6rem 1rem;
     border-radius: var(--radius-md);
-    color: #cccccc;
-    /* Light Gray for links */
+    color: var(--text-secondary);
+    /* Gray for links */
     text-decoration: none;
     font-weight: 500;
     transition: all var(--transition-fast);
@@ -66,10 +76,10 @@
 }
 
 .nav-link.active {
-    color: #ffffff;
-    background: rgba(139, 92, 246, 0.2);
+    color: var(--primary-purple);
+    background: rgba(139, 92, 246, 0.1);
     border-color: var(--primary-purple);
-    box-shadow: 0 0 15px rgba(176, 38, 255, 0.3);
+    font-weight: 600;
 }
 
 .nav-link svg {

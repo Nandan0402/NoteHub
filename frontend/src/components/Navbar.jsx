@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import '../styles/navbar.css';
 
 const Navbar = () => {
-    const { currentUser, logout } = useAuth();
+    const { user, logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -21,7 +21,7 @@ const Navbar = () => {
         return location.pathname === path;
     };
 
-    if (!currentUser) {
+    if (!user) {
         return null;
     }
 
@@ -29,10 +29,29 @@ const Navbar = () => {
         <nav className="navbar glass neon-glow">
             <div className="navbar-container">
                 <Link to="/upload" className="navbar-brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="brand-logo">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                    </svg>
                     <span className="neon-text">NoteHub</span>
                 </Link>
 
                 <div className="navbar-links">
+                    <Link
+                        to="/dashboard"
+                        className={`nav-link ${isActive('/dashboard') ? 'active' : ''}`}
+                    >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                        </svg>
+                        Dashboard
+                    </Link>
                     <Link
                         to="/profile"
                         className={`nav-link ${isActive('/profile') ? 'active' : ''}`}

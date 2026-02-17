@@ -8,6 +8,7 @@ import Profile from './pages/Profile';
 import UploadResource from './pages/UploadResource';
 import MyResources from './pages/MyResources';
 import BrowseResources from './pages/BrowseResources';
+import Dashboard from './pages/Dashboard';
 import Navbar from './components/Navbar';
 import './styles/theme.css';
 
@@ -23,6 +24,15 @@ function App() {
                         <Route path="/register" element={<Register />} />
 
                         {/* Protected Routes */}
+
+                        <Route
+                            path="/dashboard"
+                            element={
+                                <ProtectedRoute>
+                                    <Dashboard />
+                                </ProtectedRoute>
+                            }
+                        />
                         <Route
                             path="/profile"
                             element={
@@ -56,8 +66,8 @@ function App() {
                             }
                         />
 
-                        {/* Default Route - Redirect to profile if logged in, otherwise to login */}
-                        <Route path="/" element={<Navigate to="/upload" replace />} />
+                        {/* Default Route - Redirect to dashboard if logged in, otherwise to login */}
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
                         {/* 404 - Redirect to home */}
                         <Route path="*" element={<Navigate to="/" replace />} />

@@ -10,6 +10,7 @@ const ReviewModal = ({ isOpen, onClose, resource, onReviewSubmitted }) => {
     const [userRating, setUserRating] = useState(0);
     const [userComment, setUserComment] = useState('');
     const [error, setError] = useState('');
+    const [successMsg, setSuccessMsg] = useState('');
 
     useEffect(() => {
         if (isOpen && resource) {
@@ -18,6 +19,7 @@ const ReviewModal = ({ isOpen, onClose, resource, onReviewSubmitted }) => {
             setUserRating(0);
             setUserComment('');
             setError('');
+            setSuccessMsg('');
         }
     }, [isOpen, resource]);
 
@@ -53,8 +55,8 @@ const ReviewModal = ({ isOpen, onClose, resource, onReviewSubmitted }) => {
             if (onReviewSubmitted) {
                 onReviewSubmitted(response.avg_rating, response.review_count);
             }
-            alert('Review submitted successfully!');
-            // Optional: Close modal or stay to see your review in list
+            setSuccessMsg('Review submitted successfully!');
+            setTimeout(() => setSuccessMsg(''), 3000);
         } catch (err) {
             console.error(err);
             setError('Failed to submit review');
@@ -72,34 +74,40 @@ const ReviewModal = ({ isOpen, onClose, resource, onReviewSubmitted }) => {
 
                 <h2 className="neon-text" style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Reviews: {resource.title}</h2>
 
-                <div style={{ padding: '0 1rem', marginBottom: '1rem', flexShrink: 0 }}>
+                <div style={{ marginBottom: '1rem', flexShrink: 0 }}>
                     <div className="glass" style={{ padding: '1rem', borderRadius: '12px', background: 'rgba(255, 255, 255, 0.05)' }}>
                         <h4 style={{ margin: '0 0 0.5rem 0' }}>Write a Review</h4>
-                        <form onSubmit={handleSubmit}>
-                            <div style={{ marginBottom: '0.5rem' }}>
-                                <StarRating rating={userRating} onChange={setUserRating} size="lg" />
+                        {successMsg ? (
+                            <div style={{ padding: '1rem', background: 'rgba(34, 197, 94, 0.2)', border: '1px solid #22c55e', borderRadius: '8px', color: '#22c55e', textAlign: 'center' }}>
+                                ✅ {successMsg}
                             </div>
-                            <textarea
-                                className="input-field"
-                                placeholder="Share your thoughts..."
-                                value={userComment}
-                                onChange={(e) => setUserComment(e.target.value)}
-                                rows="3"
-                                style={{ width: '100%', resize: 'none', marginBottom: '0.5rem' }}
-                            />
-                            {error && <p style={{ color: '#ff6b6b', fontSize: '0.9rem', margin: '0.5rem 0' }}>{error}</p>}
-                            <button
-                                type="submit"
-                                className="btn btn-primary btn-sm"
-                                disabled={submitting}
-                            >
-                                {submitting ? 'Submitting...' : 'Post Review'}
-                            </button>
-                        </form>
+                        ) : (
+                            <form onSubmit={handleSubmit}>
+                                <div style={{ marginBottom: '0.5rem' }}>
+                                    <StarRating rating={userRating} onChange={setUserRating} size="lg" />
+                                </div>
+                                <textarea
+                                    className="input-field"
+                                    placeholder="Share your thoughts..."
+                                    value={userComment}
+                                    onChange={(e) => setUserComment(e.target.value)}
+                                    rows="3"
+                                    style={{ width: '100%', resize: 'none', marginBottom: '0.5rem' }}
+                                />
+                                {error && <p style={{ color: '#ff6b6b', fontSize: '0.9rem', margin: '0.5rem 0' }}>{error}</p>}
+                                <button
+                                    type="submit"
+                                    className="btn btn-primary btn-sm"
+                                    disabled={submitting}
+                                >
+                                    {submitting ? 'Submitting...' : 'Post Review'}
+                                </button>
+                            </form>
+                        )}
                     </div>
                 </div>
 
-                <div className="reviews-list" style={{ overflowY: 'auto', padding: '0 1rem 1rem 1rem', flexGrow: 1 }}>
+                <div className="reviews-list" style={{ overflowY: 'auto', padding: '0 0 1rem 0', flexGrow: 1 }}>
                     {loading ? (
                         <p>Loading reviews...</p>
                     ) : reviews.length === 0 ? (

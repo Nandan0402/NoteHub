@@ -120,7 +120,9 @@ class Resource:
         self.title = resource_data.get('title')
         self.subject = resource_data.get('subject')
         self.semester = resource_data.get('semester')
+        self.semester = resource_data.get('semester')
         self.branch = resource_data.get('branch', 'General') # Branch/Department
+        self.college = resource_data.get('college', 'Unknown') # College name
         self.resource_type = resource_data.get('resource_type')
         self.year = resource_data.get('year')
         self.description = resource_data.get('description', '')
@@ -150,7 +152,9 @@ class Resource:
             'title': self.title,
             'subject': self.subject,
             'semester': self.semester,
+            'semester': self.semester,
             'branch': self.branch,
+            'college': self.college,
             'resource_type': self.resource_type,
             'year': self.year,
             'description': self.description,
@@ -257,7 +261,7 @@ class Resource:
         sanitized = {}
         
         # Copy only allowed fields
-        allowed_fields = ['title', 'subject', 'semester', 'branch', 'resource_type', 'year', 'description', 'tags', 'privacy']
+        allowed_fields = ['title', 'subject', 'semester', 'branch', 'college', 'resource_type', 'year', 'description', 'tags', 'privacy']
         for field in allowed_fields:
             if field in data:
                 if field == 'semester' or field == 'year':

@@ -71,15 +71,17 @@ def upload_resource():
             'uploaded_at': datetime.utcnow()
         })
         
-        # Get user profile to add branch info
+        # Get user profile to add branch and college info
         user_profile = db.profiles.find_one({'uid': uid})
         branch = user_profile.get('branch', 'General') if user_profile else 'General'
+        college = user_profile.get('college', 'Unknown') if user_profile else 'Unknown'
         
         # Sanitize and prepare resource data
         resource_data = Resource.sanitize_resource_data(form_data)
         resource_data.update({
             'uid': uid,
             'branch': branch,
+            'college': college,
             'file_id': str(file_id),
             'file_name': file.filename,
             'file_size': file_size,
@@ -383,23 +385,26 @@ def browse_resources():
         # Base Accessibility Query
         # To optimize, we find same college UIDs only if we are browsing private or all
         
-        same_college_uids = []
-        if not privacy or privacy == 'Private':
-            same_college_profiles = db.profiles.find({
-                'college': {'$regex': f'^{current_college}$', '$options': 'i'}
-            })
-            same_college_uids = [profile['uid'] for profile in same_college_profiles]
+        # Base Accessibility Query
+        # Optimized to use the 'college' field directly on resources
         
         if privacy == 'Public':
             access_query = {'privacy': 'Public'}
         elif privacy == 'Private':
-            access_query = {'privacy': 'Private', 'uid': {'$in': same_college_uids}}
+            # Private resources are only visible if they belong to the same college
+            access_query = {
+                'privacy': 'Private', 
+                'college': {'$regex': f'^{current_college}$', '$options': 'i'}
+            }
         else:
-            # All accessible
+            # All accessible: Public OR (Private AND Same College)
             access_query = {
                 '$or': [
                     {'privacy': 'Public'},
-                    {'privacy': 'Private', 'uid': {'$in': same_college_uids}}
+                    {
+                        'privacy': 'Private',
+                        'college': {'$regex': f'^{current_college}$', '$options': 'i'}
+                    }
                 ]
             }
         
@@ -566,7 +571,7 @@ def add_review(resource_id):
         
     except Exception as e:
         print(f"Error adding review: {e}")
-        return jsonify({'error': 'Failed to submit review'}), 500
+        return jsonify({'error': f'Failed to submit review: {str(e)}'}), 500
 
 @resources_bp.route('/<resource_id>/reviews', methods=['GET'])
 @verify_firebase_token
