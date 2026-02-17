@@ -1,48 +1,64 @@
 :root {
-  /* Neon Purple Theme Colors */
+  /* Neon Purple Theme Colors - KEPT FOR ACCENTS */
   --primary-purple: #B026FF;
   --secondary-purple: #8B5CF6;
   --light-purple: #C084FC;
   --dark-purple: #7C3AED;
-  
-  /* Black Background Variations */
-  --bg-black: #0a0a0a;
-  --bg-dark: #1a1a1a;
-  --bg-darker: #151515;
-  --bg-card: #1f1f1f;
-  
+
+  /* Hybrid Theme Backgrounds */
+  --bg-black: #F3F4F6;
+  /* Main Page BG - Light Gray */
+  --bg-dark: #FFFFFF;
+  /* Secondary BG - White */
+  --bg-darker: #F9FAFB;
+  /* Tertiary BG - Very Light Gray */
+  --bg-card: #FFFFFF;
+  /* Card BG - White */
+
+  /* Navbar & Dark Elements (Preserved) */
+  --bg-nav: #0a0a0a;
+  /* Navbar Background - Dark */
+  --bg-nav-blur: rgba(20, 20, 35, 0.95);
+
   /* Text Colors */
-  --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
-  --text-muted: #808080;
-  
+  --text-primary: #111827;
+  /* Main Text - Dark Gray */
+  --text-secondary: #4B5563;
+  /* Secondary Text - Medium Gray */
+  --text-muted: #9CA3AF;
+  /* Muted Text - Light Gray */
+  --text-inverse: #ffffff;
+  /* Text on Dark Backgrounds (Navbar/Buttons) */
+
   /* Accent Colors */
   --accent-pink: #FF10F0;
-  --accent-cyan: #00D9FF;
-  
+  --accent-cyan: #06b6d4;
+
   /* Status Colors */
-  --success: #10B981;
-  --error: #EF4444;
-  --warning: #F59E0B;
-  
+  --success: #059669;
+  --error: #DC2626;
+  --warning: #D97706;
+
   /* Border and Shadow */
-  --border-color: rgba(139, 92, 246, 0.2);
-  --glow-shadow: 0 0 20px rgba(176, 38, 255, 0.4);
-  --glow-shadow-strong: 0 0 30px rgba(176, 38, 255, 0.6);
-  
+  --border-color: #E5E7EB;
+  /* Light Border */
+  --glow-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --glow-shadow-strong: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --nav-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
   /* Spacing */
   --spacing-xs: 0.5rem;
   --spacing-sm: 1rem;
   --spacing-md: 1.5rem;
   --spacing-lg: 2rem;
   --spacing-xl: 3rem;
-  
+
   /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
   --radius-xl: 20px;
-  
+
   /* Transitions */
   --transition-fast: 0.2s ease;
   --transition-normal: 0.3s ease;
@@ -66,19 +82,21 @@ body {
 
 /* Glassmorphism Effect */
 .glass {
-  background: rgba(31, 31, 31, 0.7);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .glass-strong {
-  background: rgba(31, 31, 31, 0.9);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  box-shadow: var(--glow-shadow);
 }
 
 /* Neon Glow Effects */
@@ -92,8 +110,9 @@ body {
 }
 
 .neon-text {
-  color: var(--primary-purple);
-  text-shadow: 0 0 10px rgba(176, 38, 255, 0.5);
+  color: var(--dark-purple);
+  /* Darker purple for better readability on white */
+  text-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
 }
 
 /* Button Styles */
@@ -114,13 +133,13 @@ body {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-purple), var(--secondary-purple));
-  color: var(--text-primary);
-  box-shadow: var(--glow-shadow);
+  color: #ffffff;
+  box-shadow: 0 4px 6px rgba(139, 92, 246, 0.25);
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: var(--glow-shadow-strong);
+  box-shadow: 0 6px 12px rgba(139, 92, 246, 0.35);
 }
 
 .btn-primary:active {
@@ -170,7 +189,7 @@ body {
 .input-field {
   width: 100%;
   padding: 0.875rem 1rem;
-  background: var(--bg-darker);
+  background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   color: var(--text-primary);
@@ -181,7 +200,8 @@ body {
 .input-field:focus {
   outline: none;
   border-color: var(--primary-purple);
-  box-shadow: 0 0 0 3px rgba(176, 38, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  background: #ffffff;
 }
 
 .input-field::placeholder {
@@ -225,8 +245,13 @@ textarea.input-field {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* Error/Success Messages */
@@ -265,13 +290,29 @@ a:hover {
   text-align: center;
 }
 
-.mt-1 { margin-top: var(--spacing-sm); }
-.mt-2 { margin-top: var(--spacing-md); }
-.mt-3 { margin-top: var(--spacing-lg); }
+.mt-1 {
+  margin-top: var(--spacing-sm);
+}
 
-.mb-1 { margin-bottom: var(--spacing-sm); }
-.mb-2 { margin-bottom: var(--spacing-md); }
-.mb-3 { margin-bottom: var(--spacing-lg); }
+.mt-2 {
+  margin-top: var(--spacing-md);
+}
+
+.mt-3 {
+  margin-top: var(--spacing-lg);
+}
+
+.mb-1 {
+  margin-bottom: var(--spacing-sm);
+}
+
+.mb-2 {
+  margin-bottom: var(--spacing-md);
+}
+
+.mb-3 {
+  margin-bottom: var(--spacing-lg);
+}
 
 /* Animations */
 @keyframes fadeIn {
@@ -279,6 +320,7 @@ a:hover {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -290,9 +332,12 @@ a:hover {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

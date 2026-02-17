@@ -221,6 +221,8 @@ const UploadResource = () => {
                                 placeholder="e.g., Data Structures Mid-Term Notes"
                                 value={formData.title}
                                 onChange={handleChange}
+                                minLength="3"
+                                maxLength="200"
                                 required
                             />
                         </div>
@@ -235,6 +237,8 @@ const UploadResource = () => {
                                 placeholder="e.g., Data Structures and Algorithms"
                                 value={formData.subject}
                                 onChange={handleChange}
+                                minLength="2"
+                                maxLength="100"
                                 required
                             />
                         </div>

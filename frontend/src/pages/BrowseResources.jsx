@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // Verified update
 import { useNavigate } from 'react-router-dom';
 import resourceService from '../services/resourceService';
+import FileViewerModal from '../components/FileViewerModal';
+import ReviewModal from '../components/ReviewModal';
 import '../styles/resources.css';
 
 const BrowseResources = () => {
@@ -9,9 +11,19 @@ const BrowseResources = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showViewer, setShowViewer] = useState(false);
+    const [currentFile, setCurrentFile] = useState(null);
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [currentReviewResource, setCurrentReviewResource] = useState(null);
+
+    // Filters
     const [filterType, setFilterType] = useState('');
     const [filterSemester, setFilterSemester] = useState('');
     const [filterSubject, setFilterSubject] = useState('');
+    const [filterBranch, setFilterBranch] = useState('');
+    const [filterYear, setFilterYear] = useState('');
+    const [filterPrivacy, setFilterPrivacy] = useState('');
+    const [sortBy, setSortBy] = useState('latest');
 
     const resourceTypes = [
         'Notes',
@@ -21,9 +33,12 @@ const BrowseResources = () => {
         'Study Material'
     ];
 
+    const branches = ['CSE', 'ECE', 'ME', 'CE', 'EE', 'IT', 'Other'];
+    const years = Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - i + 1); // Current year + 1 down to past 5 years
+
     useEffect(() => {
         fetchResources();
-    }, [filterType, filterSemester, filterSubject, searchTerm]);
+    }, [filterType, filterSemester, filterSubject, filterBranch, filterYear, filterPrivacy, sortBy, searchTerm]);
 
     const fetchResources = async () => {
         try {
@@ -32,6 +47,10 @@ const BrowseResources = () => {
                 type: filterType,
                 semester: filterSemester,
                 subject: filterSubject,
+                branch: filterBranch,
+                year: filterYear,
+                privacy: filterPrivacy,
+                sort: sortBy,
                 search: searchTerm
             };
             const data = await resourceService.browseResources(filters);
@@ -48,10 +67,43 @@ const BrowseResources = () => {
         }
     };
 
+
+
+    const handleView = async (resource) => {
+        try {
+            setError('');
+            // Optimistic view count update
+            setResources(prev => prev.map(r =>
+                r._id === resource._id ? { ...r, views: (r.views || 0) + 1 } : r
+            ));
+
+            const fileBlob = await resourceService.viewResource(resource._id);
+            const fileUrl = window.URL.createObjectURL(fileBlob);
+
+            setCurrentFile({
+                url: fileUrl,
+                resource: resource
+            });
+            setShowViewer(true);
+        } catch (err) {
+            console.error("View error:", err);
+            if (err.response?.status === 403) {
+                setError('Access denied. This private resource is only available to students from ' + resource.uploader_college);
+            } else {
+                setError('Failed to view file. It might not be available.');
+            }
+        }
+    };
+
     const handleDownload = async (resource) => {
         try {
             setError('');
             await resourceService.downloadResource(resource._id, resource.file_name);
+            // Refresh logic could be added here to update download count locally
+            // But strict consistency isn't critical, so we can skip or optimistically update
+            setResources(prev => prev.map(r =>
+                r._id === resource._id ? { ...r, downloads: (r.downloads || 0) + 1 } : r
+            ));
         } catch (err) {
             if (err.response?.status === 403) {
                 setError('Access denied. This private resource is only available to students from ' + resource.uploader_college);
@@ -59,6 +111,19 @@ const BrowseResources = () => {
                 setError('Failed to download file');
             }
         }
+    };
+
+    const handleRate = (resource) => {
+        setCurrentReviewResource(resource);
+        setShowReviewModal(true);
+    };
+
+    const handleReviewSubmitted = (newAvgRating, newReviewCount) => {
+        setResources(prev => prev.map(r =>
+            r._id === currentReviewResource._id
+                ? { ...r, avg_rating: newAvgRating, review_count: newReviewCount }
+                : r
+        ));
     };
 
     const formatFileSize = (bytes) => {
@@ -103,40 +168,94 @@ const BrowseResources = () => {
 
                 {/* Filters */}
                 <div className="filters-container glass">
-                    <div className="filter-group">
-                        <input
-                            type="text"
-                            className="input-field"
-                            placeholder="Search by title, subject, or tags..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="filter-row">
+                        <div className="filter-group search-group">
+                            <input
+                                type="text"
+                                className="input-field"
+                                placeholder="Search by title, subject, tags..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                            >
+                                <option value="latest">Latest Uploads</option>
+                                <option value="popular">Most Popular</option>
+                                <option value="rated">Highest Rated</option>
+                            </select>
+                        </div>
                     </div>
 
-                    <div className="filter-group">
-                        <select
-                            className="input-field"
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                        >
-                            <option value="">All Types</option>
-                            {resourceTypes.map(type => (
-                                <option key={type} value={type}>{type}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <div className="filter-row">
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                            >
+                                <option value="">All Types</option>
+                                {resourceTypes.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                        </div>
 
-                    <div className="filter-group">
-                        <select
-                            className="input-field"
-                            value={filterSemester}
-                            onChange={(e) => setFilterSemester(e.target.value)}
-                        >
-                            <option value="">All Semesters</option>
-                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
-                                <option key={sem} value={sem}>Semester {sem}</option>
-                            ))}
-                        </select>
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={filterBranch}
+                                onChange={(e) => setFilterBranch(e.target.value)}
+                            >
+                                <option value="">All Branches</option>
+                                {branches.map(branch => (
+                                    <option key={branch} value={branch}>{branch}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={filterSemester}
+                                onChange={(e) => setFilterSemester(e.target.value)}
+                            >
+                                <option value="">All Semesters</option>
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(sem => (
+                                    <option key={sem} value={sem}>Semester {sem}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={filterYear}
+                                onChange={(e) => setFilterYear(e.target.value)}
+                            >
+                                <option value="">All Years</option>
+                                {years.map(year => (
+                                    <option key={year} value={year}>{year}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className="filter-group">
+                            <select
+                                className="input-field"
+                                value={filterPrivacy}
+                                onChange={(e) => setFilterPrivacy(e.target.value)}
+                            >
+                                <option value="">All Privacy</option>
+                                <option value="Public">Public</option>
+                                <option value="Private">Private</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -177,11 +296,17 @@ const BrowseResources = () => {
                                 </div>
 
                                 <h3 className="resource-title">{resource.title}</h3>
-                                <p className="resource-subject">{resource.subject}</p>
+                                <p className="resource-subject">{resource.subject} • {resource.branch || 'General'}</p>
 
                                 <div className="resource-meta">
-                                    <span>📚 Semester {resource.semester}</span>
+                                    <span>📚 Sem {resource.semester}</span>
                                     <span>📅 {resource.year}</span>
+                                </div>
+
+                                <div className="resource-stats" style={{ display: 'flex', gap: '1rem', fontSize: '0.85rem', color: '#ccc', margin: '0.5rem 0' }}>
+                                    <span title="Views">👁️ {resource.views || 0}</span>
+                                    <span title="Downloads">⬇️ {resource.downloads || 0}</span>
+                                    <span title="Rating">⭐ {resource.avg_rating ? resource.avg_rating.toFixed(1) : '0.0'} ({resource.review_count || 0})</span>
                                 </div>
 
                                 {resource.description && (
@@ -210,6 +335,20 @@ const BrowseResources = () => {
 
                                     <div className="resource-actions">
                                         <button
+                                            className="btn btn-sm btn-outline-primary"
+                                            onClick={() => handleView(resource)}
+                                            style={{ marginRight: '8px' }}
+                                        >
+                                            View
+                                        </button>
+                                        <button
+                                            className="btn-icon"
+                                            onClick={() => handleRate(resource)}
+                                            title="Rate"
+                                        >
+                                            ⭐
+                                        </button>
+                                        <button
                                             className="btn-icon"
                                             onClick={() => handleDownload(resource)}
                                             title="Download"
@@ -225,6 +364,32 @@ const BrowseResources = () => {
                             </div>
                         ))}
                     </div>
+                )}
+                {currentFile && (
+                    <FileViewerModal
+                        isOpen={showViewer}
+                        onClose={() => {
+                            setShowViewer(false);
+                            if (currentFile.url) {
+                                window.URL.revokeObjectURL(currentFile.url);
+                            }
+                            setCurrentFile(null);
+                        }}
+                        fileUrl={currentFile.url}
+                        resource={currentFile.resource}
+                    />
+                )}
+
+                {currentReviewResource && (
+                    <ReviewModal
+                        isOpen={showReviewModal}
+                        onClose={() => {
+                            setShowReviewModal(false);
+                            setCurrentReviewResource(null);
+                        }}
+                        resource={currentReviewResource}
+                        onReviewSubmitted={handleReviewSubmitted}
+                    />
                 )}
             </div>
         </div>

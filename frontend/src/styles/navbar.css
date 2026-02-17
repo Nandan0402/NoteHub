@@ -7,8 +7,12 @@
     right: 0;
     z-index: 100;
     padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--bg-nav-blur);
+    /* Keep navbar dark */
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--nav-shadow);
 }
 
 .navbar-container {
@@ -24,6 +28,8 @@
     font-weight: 700;
     text-decoration: none;
     transition: transform var(--transition-fast);
+    color: #ffffff;
+    /* Explicitly White */
 }
 
 .navbar-brand:hover {
@@ -42,7 +48,8 @@
     gap: 0.5rem;
     padding: 0.6rem 1rem;
     border-radius: var(--radius-md);
-    color: var(--text-secondary);
+    color: #cccccc;
+    /* Light Gray for links */
     text-decoration: none;
     font-weight: 500;
     transition: all var(--transition-fast);
@@ -59,8 +66,8 @@
 }
 
 .nav-link.active {
-    color: var(--primary-purple);
-    background: rgba(139, 92, 246, 0.15);
+    color: #ffffff;
+    background: rgba(139, 92, 246, 0.2);
     border-color: var(--primary-purple);
     box-shadow: 0 0 15px rgba(176, 38, 255, 0.3);
 }

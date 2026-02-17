@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { auth } from '../firebase/config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = `${BASE_URL}/api`;
 
 // Get auth token from Firebase
 const getAuthToken = async () => {
@@ -131,6 +132,23 @@ const resourceService = {
     },
 
     /**
+     * View a resource file inline
+     * @param {string} resourceId - Resource ID
+     * @returns {Promise<Blob>} - File blob
+     */
+    viewResource: async (resourceId) => {
+        const config = await createAuthRequest();
+        const response = await axios.get(
+            `${API_URL}/resources/view/${resourceId}`,
+            {
+                ...config,
+                responseType: 'blob'
+            }
+        );
+        return response.data;
+    },
+
+    /**
      * Update resource metadata
      * @param {string} resourceId - Resource ID
      * @param {Object} metadata - Updated metadata
@@ -181,6 +199,10 @@ const resourceService = {
         if (filters.type) params.append('type', filters.type);
         if (filters.semester) params.append('semester', filters.semester);
         if (filters.subject) params.append('subject', filters.subject);
+        if (filters.branch) params.append('branch', filters.branch);
+        if (filters.year) params.append('year', filters.year);
+        if (filters.privacy) params.append('privacy', filters.privacy);
+        if (filters.sort) params.append('sort', filters.sort);
         if (filters.search) params.append('search', filters.search);
 
         const response = await axios.get(
@@ -189,6 +211,36 @@ const resourceService = {
         );
 
         return response.data.resources;
+    },
+
+    /**
+     * Add a review for a resource
+     * @param {string} resourceId - Resource ID
+     * @param {Object} reviewData - { rating, comment }
+     * @returns {Promise<Object>} - Review response
+     */
+    addReview: async (resourceId, reviewData) => {
+        const config = await createAuthRequest();
+        const response = await axios.post(
+            `${API_URL}/resources/${resourceId}/reviews`,
+            reviewData,
+            config
+        );
+        return response.data;
+    },
+
+    /**
+     * Get reviews for a resource
+     * @param {string} resourceId - Resource ID
+     * @returns {Promise<Array>} - List of reviews
+     */
+    getReviews: async (resourceId) => {
+        const config = await createAuthRequest();
+        const response = await axios.get(
+            `${API_URL}/resources/${resourceId}/reviews`,
+            config
+        );
+        return response.data.reviews;
     }
 };
 

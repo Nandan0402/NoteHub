@@ -120,11 +120,18 @@ class Resource:
         self.title = resource_data.get('title')
         self.subject = resource_data.get('subject')
         self.semester = resource_data.get('semester')
+        self.branch = resource_data.get('branch', 'General') # Branch/Department
         self.resource_type = resource_data.get('resource_type')
         self.year = resource_data.get('year')
         self.description = resource_data.get('description', '')
         self.tags = resource_data.get('tags', [])  # List of keywords/tags
         self.privacy = resource_data.get('privacy', 'Private')  # Privacy setting: Public or Private
+        
+        # Stats
+        self.views = resource_data.get('views', 0)
+        self.downloads = resource_data.get('downloads', 0)
+        self.ratings = resource_data.get('ratings', []) # List of {uid, rating, timestamp}
+        self.avg_rating = resource_data.get('avg_rating', 0.0)
         
         # File metadata
         self.file_id = resource_data.get('file_id')  # GridFS file ID
@@ -143,11 +150,16 @@ class Resource:
             'title': self.title,
             'subject': self.subject,
             'semester': self.semester,
+            'branch': self.branch,
             'resource_type': self.resource_type,
             'year': self.year,
             'description': self.description,
             'tags': self.tags,
             'privacy': self.privacy,
+            'views': self.views,
+            'downloads': self.downloads,
+            'ratings': self.ratings,
+            'avg_rating': self.avg_rating,
             'file_id': self.file_id,
             'file_name': self.file_name,
             'file_size': self.file_size,
@@ -245,7 +257,7 @@ class Resource:
         sanitized = {}
         
         # Copy only allowed fields
-        allowed_fields = ['title', 'subject', 'semester', 'resource_type', 'year', 'description', 'tags', 'privacy']
+        allowed_fields = ['title', 'subject', 'semester', 'branch', 'resource_type', 'year', 'description', 'tags', 'privacy']
         for field in allowed_fields:
             if field in data:
                 if field == 'semester' or field == 'year':
@@ -266,3 +278,54 @@ class Resource:
             sanitized['privacy'] = 'Private'
         
         return sanitized
+
+
+class Review:
+    """Review Model for MongoDB - Resource ratings and comments"""
+    
+    def __init__(self, review_data: Dict[str, Any]):
+        """Initialize review from dictionary"""
+        self.resource_id = review_data.get('resource_id')
+        self.uid = review_data.get('uid')
+        self.user_name = review_data.get('user_name', 'Anonymous')
+        self.rating = review_data.get('rating')
+        self.comment = review_data.get('comment', '')
+        self.created_at = review_data.get('created_at', datetime.utcnow())
+        self.updated_at = review_data.get('updated_at', datetime.utcnow())
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert review to dictionary for MongoDB storage"""
+        return {
+            'resource_id': self.resource_id,
+            'uid': self.uid,
+            'user_name': self.user_name,
+            'rating': self.rating,
+            'comment': self.comment,
+            'created_at': self.created_at,
+            'updated_at': self.updated_at
+        }
+    
+    @staticmethod
+    def validate_review_data(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """
+        Validate review data
+        Returns: (is_valid, error_message)
+        """
+        # Validate rating
+        if 'rating' not in data:
+            return False, "Rating is required"
+        
+        try:
+            rating = float(data['rating'])
+            if rating < 1 or rating > 5:
+                return False, "Rating must be between 1 and 5"
+        except (ValueError, TypeError):
+            return False, "Rating must be a valid number"
+        
+        # Validate comment (optional but if present check length)
+        if 'comment' in data and data['comment']:
+            if len(data['comment']) > 500:
+                return False, "Comment must not exceed 500 characters"
+                
+        return True, None
+

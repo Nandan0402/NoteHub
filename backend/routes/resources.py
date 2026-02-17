@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, send_file
 from auth_middleware import verify_token as verify_firebase_token
-from models import Resource
+from auth_middleware import verify_token as verify_firebase_token
+from models import Resource, Review
 from services.storage_service import StorageService
 from bson import ObjectId
 from datetime import datetime
@@ -25,7 +26,7 @@ def upload_resource():
     """Upload a new resource with file"""
     try:
         # Get the authenticated user from request
-        uid = request.user['uid']
+        uid = request.uid
         
         # Check if file is present
         if 'file' not in request.files:
@@ -70,14 +71,23 @@ def upload_resource():
             'uploaded_at': datetime.utcnow()
         })
         
+        # Get user profile to add branch info
+        user_profile = db.profiles.find_one({'uid': uid})
+        branch = user_profile.get('branch', 'General') if user_profile else 'General'
+        
         # Sanitize and prepare resource data
         resource_data = Resource.sanitize_resource_data(form_data)
         resource_data.update({
             'uid': uid,
+            'branch': branch,
             'file_id': str(file_id),
             'file_name': file.filename,
             'file_size': file_size,
             'file_type': file.content_type,
+            'views': 0,
+            'downloads': 0,
+            'ratings': [],
+            'avg_rating': 0.0,
             'created_at': datetime.utcnow(),
             'updated_at': datetime.utcnow()
         })
@@ -104,7 +114,7 @@ def upload_resource():
 def get_my_resources():
     """Get all resources uploaded by the authenticated user"""
     try:
-        uid = request.user['uid']
+        uid = request.uid
         
         # Get query parameters for filtering
         resource_type = request.args.get('type')
@@ -136,6 +146,10 @@ def get_my_resources():
             resource['_id'] = str(resource['_id'])
             resource['created_at'] = resource['created_at'].isoformat()
             resource['updated_at'] = resource['updated_at'].isoformat()
+            # Ensure new fields exist for display
+            resource['views'] = resource.get('views', 0)
+            resource['downloads'] = resource.get('downloads', 0)
+            resource['avg_rating'] = resource.get('avg_rating', 0.0)
         
         return jsonify({'resources': resources}), 200
     
@@ -153,6 +167,13 @@ def get_resource(resource_id):
         
         if not resource:
             return jsonify({'error': 'Resource not found'}), 404
+            
+        # Increment views
+        db.resources.update_one(
+            {'_id': ObjectId(resource_id)},
+            {'$inc': {'views': 1}}
+        )
+        resource['views'] = resource.get('views', 0) + 1
         
         # Convert ObjectId and datetime to strings
         resource['_id'] = str(resource['_id'])
@@ -170,7 +191,7 @@ def get_resource(resource_id):
 def download_resource(resource_id):
     """Download a resource file with access control"""
     try:
-        uid = request.user['uid']
+        uid = request.uid
         
         # Fetch resource metadata
         resource = db.resources.find_one({'_id': ObjectId(resource_id)})
@@ -199,6 +220,12 @@ def download_resource(resource_id):
                     'error': 'Access denied. This is a private resource available only to students from the same college.'
                 }), 403
         
+        # Increment download count
+        db.resources.update_one(
+            {'_id': ObjectId(resource_id)},
+            {'$inc': {'downloads': 1}}
+        )
+        
         # Get file from GridFS
         file_data = storage_service.get_file(resource['file_id'])
         
@@ -217,12 +244,70 @@ def download_resource(resource_id):
         print(f"Error downloading resource: {e}")
         return jsonify({'error': 'Failed to download resource'}), 500
 
+@resources_bp.route('/view/<resource_id>', methods=['GET'])
+@verify_firebase_token
+def view_resource(resource_id):
+    """View a resource file inline with access control"""
+    try:
+        uid = request.uid
+        
+        # Fetch resource metadata
+        resource = db.resources.find_one({'_id': ObjectId(resource_id)})
+        
+        if not resource:
+            return jsonify({'error': 'Resource not found'}), 404
+        
+        # Check access control for private resources
+        if resource.get('privacy', 'Private') == 'Private':
+            # Get current user's college
+            current_user_profile = db.profiles.find_one({'uid': uid})
+            if not current_user_profile:
+                return jsonify({'error': 'User profile not found. Please complete your profile.'}), 403
+            
+            # Get uploader's college
+            uploader_profile = db.profiles.find_one({'uid': resource['uid']})
+            if not uploader_profile:
+                return jsonify({'error': 'Resource uploader profile not found'}), 404
+            
+            # Compare colleges (case-insensitive)
+            current_college = current_user_profile.get('college', '').strip().lower()
+            uploader_college = uploader_profile.get('college', '').strip().lower()
+            
+            if current_college != uploader_college:
+                return jsonify({
+                    'error': 'Access denied. This is a private resource available only to students from the same college.'
+                }), 403
+        
+        # Increment view count
+        db.resources.update_one(
+            {'_id': ObjectId(resource_id)},
+            {'$inc': {'views': 1}}
+        )
+        
+        # Get file from GridFS
+        file_data = storage_service.get_file(resource['file_id'])
+        
+        if not file_data:
+            return jsonify({'error': 'File not found'}), 404
+        
+        # Stream file to client
+        return send_file(
+            io.BytesIO(file_data.read()),
+            mimetype=resource['file_type'],
+            as_attachment=False,
+            download_name=resource['file_name']
+        )
+    
+    except Exception as e:
+        print(f"Error viewing resource: {e}")
+        return jsonify({'error': 'Failed to view resource'}), 500
+
 @resources_bp.route('/<resource_id>', methods=['PUT'])
 @verify_firebase_token
 def update_resource(resource_id):
     """Update resource metadata (only by owner)"""
     try:
-        uid = request.user['uid']
+        uid = request.uid
         
         # Fetch existing resource
         resource = db.resources.find_one({'_id': ObjectId(resource_id)})
@@ -272,7 +357,7 @@ def update_resource(resource_id):
 def browse_resources():
     """Browse all accessible resources (public + private from same college)"""
     try:
-        uid = request.user['uid']
+        uid = request.uid
         
         # Get current user's college
         current_user_profile = db.profiles.find_one({'uid': uid})
@@ -285,56 +370,100 @@ def browse_resources():
         resource_type = request.args.get('type')
         semester = request.args.get('semester')
         subject = request.args.get('subject')
+        branch = request.args.get('branch')
+        year = request.args.get('year')
+        privacy = request.args.get('privacy')
         search = request.args.get('search')
+        sort_by = request.args.get('sort', 'latest') # latest, popular, rated
         
-        # Build query for public resources OR private resources from same college
-        # First, get all UIDs from the same college
-        same_college_profiles = db.profiles.find({
-            'college': {'$regex': f'^{current_college}$', '$options': 'i'}
-        })
-        same_college_uids = [profile['uid'] for profile in same_college_profiles]
+        # Build query for accessible resources
+        # Query logic: 
+        # (Public OR (Private AND Same College)) AND (Filters)
         
-        # Build base query
-        query = {
-            '$or': [
-                {'privacy': 'Public'},
-                {'privacy': 'Private', 'uid': {'$in': same_college_uids}}
-            ]
-        }
+        # Base Accessibility Query
+        # To optimize, we find same college UIDs only if we are browsing private or all
         
-        # Add filters
+        same_college_uids = []
+        if not privacy or privacy == 'Private':
+            same_college_profiles = db.profiles.find({
+                'college': {'$regex': f'^{current_college}$', '$options': 'i'}
+            })
+            same_college_uids = [profile['uid'] for profile in same_college_profiles]
+        
+        if privacy == 'Public':
+            access_query = {'privacy': 'Public'}
+        elif privacy == 'Private':
+            access_query = {'privacy': 'Private', 'uid': {'$in': same_college_uids}}
+        else:
+            # All accessible
+            access_query = {
+                '$or': [
+                    {'privacy': 'Public'},
+                    {'privacy': 'Private', 'uid': {'$in': same_college_uids}}
+                ]
+            }
+        
+        # Start constructing the final query
+        # If we have a complex search or existing $or from access_query, we need to be careful with $and
+        
+        filters = {}
         if resource_type:
-            query['resource_type'] = resource_type
-        
+            filters['resource_type'] = resource_type
         if semester:
-            query['semester'] = int(semester)
-        
+            filters['semester'] = int(semester)
         if subject:
-            query['subject'] = {'$regex': subject, '$options': 'i'}
-        
+            filters['subject'] = {'$regex': subject, '$options': 'i'}
+        if branch:
+            filters['branch'] = branch
+        if year:
+            filters['year'] = int(year)
+            
+        # Search query
+        search_query = {}
         if search:
-            # Remove the existing $or if present
-            base_or = query.pop('$or')
-            # Search in title, subject, and tags with privacy filter
-            query['$and'] = [
-                {'$or': base_or},
-                {
-                    '$or': [
-                        {'title': {'$regex': search, '$options': 'i'}},
-                        {'subject': {'$regex': search, '$options': 'i'}},
-                        {'tags': {'$regex': search, '$options': 'i'}}
-                    ]
-                }
-            ]
+            search_query = {
+                '$or': [
+                    {'title': {'$regex': search, '$options': 'i'}},
+                    {'subject': {'$regex': search, '$options': 'i'}},
+                    {'tags': {'$regex': search, '$options': 'i'}},
+                    {'branch': {'$regex': search, '$options': 'i'}}
+                ]
+            }
+            
+        # Combine all parts
+        # If access_query uses $or, search_query uses $or, we need to wrap them in an $and
+        
+        final_query = {'$and': []}
+        final_query['$and'].append(access_query)
+        if filters:
+            final_query['$and'].append(filters)
+        if search_query:
+            final_query['$and'].append(search_query)
+            
+        # Optimization: if $and has only one element, unwrap it. 
+        # But for safety and simplicity, keeping it wrapped is fine for MongoDB.
+        if not filters and not search_query:
+             # Just access query
+             final_query = access_query
+        
+        # Sorting
+        sort_order = [('created_at', -1)] # Default latest
+        if sort_by == 'popular':
+            sort_order = [('downloads', -1), ('views', -1)]
+        elif sort_by == 'rated':
+            sort_order = [('avg_rating', -1), ('created_at', -1)]
         
         # Fetch resources
-        resources = list(db.resources.find(query).sort('created_at', -1))
+        resources = list(db.resources.find(final_query).sort(sort_order))
         
         # Enrich resources with uploader information
         for resource in resources:
             resource['_id'] = str(resource['_id'])
             resource['created_at'] = resource['created_at'].isoformat()
             resource['updated_at'] = resource['updated_at'].isoformat()
+            resource['views'] = resource.get('views', 0)
+            resource['downloads'] = resource.get('downloads', 0)
+            resource['avg_rating'] = resource.get('avg_rating', 0.0)
             
             # Get uploader profile
             uploader_profile = db.profiles.find_one({'uid': resource['uid']})
@@ -351,12 +480,120 @@ def browse_resources():
         print(f"Error browsing resources: {e}")
         return jsonify({'error': 'Failed to browse resources'}), 500
 
+@resources_bp.route('/<resource_id>/reviews', methods=['POST'])
+@verify_firebase_token
+def add_review(resource_id):
+    """Add or update a review for a resource"""
+    try:
+        uid = request.uid
+        data = request.json
+        
+        # Get user profile for name
+        user_profile = db.profiles.find_one({'uid': uid})
+        user_name = user_profile.get('name', 'Anonymous') if user_profile else 'Anonymous'
+        
+        # Validate review data
+        is_valid, error_msg = Review.validate_review_data(data)
+        if not is_valid:
+            return jsonify({'error': error_msg}), 400
+            
+        current_time = datetime.utcnow()
+        
+        # Check if resource exists
+        resource = db.resources.find_one({'_id': ObjectId(resource_id)})
+        if not resource:
+            return jsonify({'error': 'Resource not found'}), 404
+            
+        # Check if user already reviewed
+        existing_review = db.reviews.find_one({
+            'resource_id': str(resource_id),
+            'uid': uid
+        })
+        
+        review_data = {
+            'resource_id': str(resource_id),
+            'uid': uid,
+            'user_name': user_name,
+            'rating': float(data['rating']),
+            'comment': data.get('comment', '').strip(),
+            'updated_at': current_time
+        }
+        
+        if existing_review:
+            # Update existing review
+            db.reviews.update_one(
+                {'_id': existing_review['_id']},
+                {'$set': review_data}
+            )
+        else:
+            # Create new review
+            review_data['created_at'] = current_time
+            db.reviews.insert_one(review_data)
+            
+        # Recalculate average rating for resource
+        pipeline = [
+            {'$match': {'resource_id': str(resource_id)}},
+            {'$group': {
+                '_id': '$resource_id',
+                'avg_rating': {'$avg': '$rating'},
+                'count': {'$sum': 1}
+            }}
+        ]
+        
+        stats = list(db.reviews.aggregate(pipeline))
+        
+        new_avg = 0.0
+        review_count = 0
+        if stats:
+            new_avg = stats[0]['avg_rating']
+            review_count = stats[0]['count']
+            
+        # Update resource stats
+        db.resources.update_one(
+            {'_id': ObjectId(resource_id)},
+            {'$set': {
+                'avg_rating': new_avg,
+                'review_count': review_count
+            }}
+        )
+        
+        return jsonify({
+            'message': 'Review submitted successfully',
+            'avg_rating': new_avg,
+            'review_count': review_count,
+            'review': review_data
+        }), 200
+        
+    except Exception as e:
+        print(f"Error adding review: {e}")
+        return jsonify({'error': 'Failed to submit review'}), 500
+
+@resources_bp.route('/<resource_id>/reviews', methods=['GET'])
+@verify_firebase_token
+def get_reviews(resource_id):
+    """Get all reviews for a resource"""
+    try:
+        reviews = list(db.reviews.find({'resource_id': resource_id}).sort('updated_at', -1))
+        
+        for review in reviews:
+            review['_id'] = str(review['_id'])
+            review['created_at'] = review['created_at'].isoformat()
+            review['updated_at'] = review['updated_at'].isoformat()
+            
+        return jsonify({'reviews': reviews}), 200
+        
+    except Exception as e:
+        print(f"Error fetching reviews: {e}")
+        return jsonify({'error': 'Failed to fetch reviews'}), 500
+
+
+
 @resources_bp.route('/<resource_id>', methods=['DELETE'])
 @verify_firebase_token
 def delete_resource(resource_id):
     """Delete a resource (only by owner)"""
     try:
-        uid = request.user['uid']
+        uid = request.uid
         
         # Fetch existing resource
         resource = db.resources.find_one({'_id': ObjectId(resource_id)})
